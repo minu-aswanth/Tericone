@@ -24,7 +24,6 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -120,6 +119,18 @@ public class MainActivity extends Activity {
 
         synthesis.setStreamType(AudioManager.STREAM_MUSIC);
 
+        try {
+            synthesis.speak("Opening Tericone");
+
+        } catch (BusyException e) {
+            Log.e(TAG, "SDK is busy");
+            e.printStackTrace();
+            Toast.makeText(_context, "ERROR: SDK is busy", Toast.LENGTH_LONG).show();
+        } catch (NoNetworkException e) {
+            Log.e(TAG, "Network is not available\n" + e.getStackTrace());
+            Toast.makeText(_context, "ERROR: Network is not available", Toast.LENGTH_LONG).show();
+        }
+
     }
 
     //Step 1: Preparation of TTS engine
@@ -175,6 +186,17 @@ public class MainActivity extends Activity {
     public class OcrButtonClickListener implements View.OnClickListener {
         public void onClick(View view) {
             Log.v(TAG, "Starting Camera app");
+            try {
+                synthesis.speak("Opening camera");
+
+            } catch (BusyException e) {
+                Log.e(TAG, "SDK is busy");
+                e.printStackTrace();
+                Toast.makeText(_context, "ERROR: SDK is busy", Toast.LENGTH_LONG).show();
+            } catch (NoNetworkException e) {
+                Log.e(TAG, "Network is not available\n" + e.getStackTrace());
+                Toast.makeText(_context, "ERROR: Network is not available", Toast.LENGTH_LONG).show();
+            }
             startCameraActivity();
         }
     }
