@@ -1,10 +1,13 @@
 package com.example.minu.tericone;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.Math;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -26,6 +29,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.graphics.Color;
 
 import com.googlecode.tesseract.android.TessBaseAPI;
 
@@ -247,6 +251,15 @@ public class MainActivity extends Activity {
 
         Bitmap bitmap = BitmapFactory.decodeFile(_path, options);
 
+        //resizing the image
+        //bitmap = Resize(bitmap, 300, 300);
+
+        //making the image grayscale
+        bitmap = SetGrayscale(bitmap);
+
+        //removing noise from image
+        bitmap = RemoveNoise(bitmap);
+
         try {
             ExifInterface exif = new ExifInterface(_path);
             int exifOrientation = exif.getAttributeInt(
@@ -292,6 +305,21 @@ public class MainActivity extends Activity {
             Log.e(TAG, "Couldn't correct orientation: " + e.toString());
         }
 
+        //saving processed image
+        String root = Environment.getExternalStorageDirectory().toString();
+        File myDir = new File(root + "/Tericone");
+        String fname = "Image.jpg";
+        File file = new File (myDir, fname);
+        if (file.exists ()) file.delete ();
+        try {
+            FileOutputStream out = new FileOutputStream(file);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
+            out.flush();
+            out.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         Log.v(TAG, "Before baseApi");
 
         //Creating TessBaseAPI object
@@ -313,11 +341,168 @@ public class MainActivity extends Activity {
 
         recognizedText = recognizedText.trim();
 
+        //checking whether all words are valid
+//        Log.i(TAG, "Dictionary starts here");
+//        Log.i(TAG, "Initial words are" + recognizedText);
+//        String[] words = recognizedText.split(" ");
+//        Log.i(TAG, "All the words are" + words);
+//        for(int a = 0; a < words.length; a++){
+//            if(check_for_word(words[a]) == false){
+//                Log.i(TAG, "All the words are" + words[a]);
+//                words[a] = "";
+//            }
+//        }
+//        String properString = "";
+//        for(int a = 0; a < words.length; a++){
+//            properString = properString + words[a];
+//            Log.i(TAG, "Joining words are" + words[a]);
+//        }
+//        Log.i(TAG, "Final word is" + properString);
+//        Log.i(TAG, "Dictionary ends here");
+
         //Setting the EditText field with the OCRed text
         if ( recognizedText.length() != 0 ) {
             minusTextView.setText(recognizedText);
         }
 
+    }
+
+    //Checking whether word is in dictionary
+    public static boolean check_for_word(String word) {
+        try {
+            BufferedReader in = new BufferedReader(new FileReader(
+                    "/usr/share/dict/american-english"));
+            String str;
+            while ((str = in.readLine()) != null) {
+                if (str.indexOf(word) != -1) {
+                    return true;
+                }
+            }
+            in.close();
+        } catch (IOException e) {
+        }
+
+        return false;
+    }
+
+    //Functions for improving the image quality
+    //1)Resize
+    public Bitmap Resize(Bitmap bmp, int newWidth, int newHeight)
+    {
+
+        Bitmap temp = (Bitmap)bmp;
+
+        Bitmap bmap = Bitmap.createScaledBitmap(temp, newWidth, newHeight, true);
+
+        double nWidthFactor = (double)temp.getWidth() / (double)newWidth;
+        double nHeightFactor = (double)temp.getHeight() / (double)newHeight;
+
+        double fx, fy, nx, ny;
+        int cx, cy, fr_x, fr_y;
+        int color1,color2,color3,color4;
+        byte nRed, nGreen, nBlue;
+
+        byte bp1, bp2;
+
+        for (int x = 0; x < bmap.getWidth(); ++x)
+        {
+            for (int y = 0; y < bmap.getHeight(); ++y)
+            {
+
+                fr_x = (int)Math.floor(x * nWidthFactor);
+                fr_y = (int)Math.floor(y * nHeightFactor);
+                cx = fr_x + 1;
+                if (cx >= temp.getWidth()) cx = fr_x;
+                cy = fr_y + 1;
+                if (cy >= temp.getHeight()) cy = fr_y;
+                fx = x * nWidthFactor - fr_x;
+                fy = y * nHeightFactor - fr_y;
+                nx = 1.0 - fx;
+                ny = 1.0 - fy;
+
+                color1 = temp.getPixel(fr_x, fr_y);
+                color2 = temp.getPixel(cx, fr_y);
+                color3 = temp.getPixel(fr_x, cy);
+                color4 = temp.getPixel(cx, cy);
+
+                // Blue
+                bp1 = (byte)(nx * Color.blue(color1) + fx * Color.blue(color2));
+
+                bp2 = (byte)(nx * Color.blue(color3) + fx * Color.blue(color4));
+
+                nBlue = (byte)(ny * (double)(bp1) + fy * (double)(bp2));
+
+                // Green
+                bp1 = (byte)(nx * Color.green(color1) + fx * Color.green(color2));
+
+                bp2 = (byte)(nx * Color.green(color3) + fx * Color.green(color4));
+
+                nGreen = (byte)(ny * (double)(bp1) + fy * (double)(bp2));
+
+                // Red
+                bp1 = (byte)(nx * Color.red(color1) + fx * Color.red(color2));
+
+                bp2 = (byte)(nx * Color.red(color3) + fx * Color.red(color4));
+
+                nRed = (byte)(ny * (double)(bp1) + fy * (double)(bp2));
+
+                bmap.setPixel(x, y, Color.argb(255, nRed, nGreen, nBlue));
+            }
+        }
+
+        return bmap;
+
+    }
+
+
+    //2)SetGrayscale
+    public Bitmap SetGrayscale(Bitmap img)
+    {
+        Log.i(TAG, "Started Grayscale");
+        Bitmap temp = (Bitmap)img;
+        Bitmap bmap = (Bitmap)temp.copy(temp.getConfig(), true);
+        int c;
+        for (int i = 0; i < bmap.getWidth(); i++)
+        {
+            for (int j = 0; j < bmap.getHeight(); j++)
+            {
+                c = bmap.getPixel(i, j);
+                byte gray = (byte)(.299 * Color.red(c) + .587 * Color.green(c) + .114 * Color.blue(c));
+
+                bmap.setPixel(i, j, Color.argb(255, gray, gray, gray));
+            }
+        }
+        Log.i(TAG, "Did Grayscale");
+        return (Bitmap)bmap.copy(bmap.getConfig(), true);
+
+    }
+    //3)RemoveNoise
+    public Bitmap RemoveNoise(Bitmap bmap)
+    {
+        Log.i(TAG, "Started RemoveNoise");
+        for (int x = 0; x < bmap.getWidth(); x++)
+        {
+            for (int y = 0; y < bmap.getHeight(); y++)
+            {
+                int pixel = bmap.getPixel(x, y);
+                if (Color.red(pixel) < 162 && Color.green(pixel) < 162 && Color.blue(pixel) < 162)
+                    bmap.setPixel(x, y, Color.BLACK);
+            }
+        }
+
+        for (int x = 0; x < bmap.getWidth(); x++)
+        {
+            for (int y = 0; y < bmap.getHeight(); y++)
+            {
+                int pixel = bmap.getPixel(x, y);
+                if (Color.red(pixel) > 162 && Color.green(pixel) > 162 && Color.blue(pixel) > 162)
+                    bmap.setPixel(x, y, Color.WHITE);
+            }
+        }
+
+        Log.i(TAG, "Removed Noise");
+
+        return bmap;
     }
 
     //Step 6: Speak button click
