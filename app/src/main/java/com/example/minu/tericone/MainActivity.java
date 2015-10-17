@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.Math;
+import java.util.Locale;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -27,19 +28,16 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.graphics.Color;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.TextToSpeech.OnInitListener;
 
 import com.googlecode.tesseract.android.TessBaseAPI;
 
-import org.ispeech.SpeechSynthesis;
-import org.ispeech.SpeechSynthesisEvent;
-import org.ispeech.error.BusyException;
-import org.ispeech.error.InvalidApiKeyException;
-import org.ispeech.error.NoNetworkException;
-
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements OnInitListener{
     public static final String PACKAGE_NAME = "com.example.minu.tericone";
     public static final String DATA_PATH = Environment
             .getExternalStorageDirectory().toString() + "/Tericone/";
@@ -51,17 +49,23 @@ public class MainActivity extends Activity {
     protected Button ocrButton;
     protected Button speakButton;
     protected Button stopButton;
-    protected TextView minusTextView;
+    protected EditText minusTextView;
     protected String _path;
     protected boolean _taken;
 
     protected static final String PHOTO_TAKEN = "photo_taken";
 
-    SpeechSynthesis synthesis;
     Context _context;
+    private int MY_DATA_CHECK_CODE = 0;
+    private TextToSpeech myTTS;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+
+        //Checking if user has required tts data
+        Intent checkTTSIntent = new Intent();
+        checkTTSIntent.setAction(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
+        startActivityForResult(checkTTSIntent, MY_DATA_CHECK_CODE);
 
         //Creating directory
         String[] paths = new String[] { DATA_PATH, DATA_PATH + "tessdata/" };
@@ -107,7 +111,7 @@ public class MainActivity extends Activity {
 
         setContentView(R.layout.activity_main);
 
-        minusTextView = (TextView) findViewById(R.id.minusTextView);
+        minusTextView = (EditText) findViewById(R.id.minusTextView);
         ocrButton = (Button) findViewById(R.id.ocrButton);
         ocrButton.setOnClickListener(new OcrButtonClickListener());
 
@@ -119,88 +123,27 @@ public class MainActivity extends Activity {
 
         _path = DATA_PATH + "/ocr.jpg";
 
-        prepareTTSEngine();
+    }
 
-        synthesis.setStreamType(AudioManager.STREAM_MUSIC);
+    //setup TTS
+    public void onInit(int initStatus) {
 
-        try {
-            synthesis.speak("Opening Tericone");
-
-        } catch (BusyException e) {
-            Log.e(TAG, "SDK is busy");
-            e.printStackTrace();
-            Toast.makeText(_context, "ERROR: SDK is busy", Toast.LENGTH_LONG).show();
-        } catch (NoNetworkException e) {
-            Log.e(TAG, "Network is not available\n" + e.getStackTrace());
-            Toast.makeText(_context, "ERROR: Network is not available", Toast.LENGTH_LONG).show();
+        //check for successful instantiation
+        if (initStatus == TextToSpeech.SUCCESS) {
+            if(myTTS.isLanguageAvailable(Locale.US)==TextToSpeech.LANG_AVAILABLE)
+                myTTS.setLanguage(Locale.US);
         }
-
+        else if (initStatus == TextToSpeech.ERROR) {
+            Toast.makeText(this, "Sorry! Text To Speech failed...", Toast.LENGTH_LONG).show();
+        }
     }
 
     //Step 1: Preparation of TTS engine
-    private void prepareTTSEngine() {
-        try {
-            synthesis = SpeechSynthesis.getInstance(this);
-            synthesis.setSpeechSynthesisEvent(new SpeechSynthesisEvent() {
-
-                public void onPlaySuccessful() {
-                    Log.i(TAG, "onPlaySuccessful");
-                }
-
-                public void onPlayStopped() {
-                    Log.i(TAG, "onPlayStopped");
-                }
-
-                public void onPlayFailed(Exception e) {
-                    Log.e(TAG, "onPlayFailed");
-
-
-                    AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                    builder.setMessage("Error[TTSActivity]: " + e.toString())
-                            .setCancelable(false)
-                            .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialog, int id) {
-                                }
-                            });
-                    AlertDialog alert = builder.create();
-                    alert.show();
-                }
-
-                public void onPlayStart() {
-                    Log.i(TAG, "onPlayStart");
-                }
-
-                @Override
-                public void onPlayCanceled() {
-                    Log.i(TAG, "onPlayCanceled");
-                }
-
-
-            });
-
-
-        } catch (InvalidApiKeyException e) {
-            Log.e(TAG, "Invalid API key\n" + e.getStackTrace());
-            Toast.makeText(_context, "ERROR: Invalid API key", Toast.LENGTH_LONG).show();
-        }
-
-    }
 
     //Step 2: OCR button click
     public class OcrButtonClickListener implements View.OnClickListener {
         public void onClick(View view) {
             Log.v(TAG, "Starting Camera app");
-            try {
-                synthesis.speak("Opening camera");
-
-            } catch (BusyException e) {
-                Log.e(TAG, "SDK is busy");
-                e.printStackTrace();
-                Toast.makeText(_context, "ERROR: SDK is busy", Toast.LENGTH_LONG).show();
-            } catch (NoNetworkException e) {
-                Log.e(TAG, "Network is not available\n" + e.getStackTrace());
-                Toast.makeText(_context, "ERROR: Network is not available", Toast.LENGTH_LONG).show();
-            }
             startCameraActivity();
         }
     }
@@ -213,16 +156,28 @@ public class MainActivity extends Activity {
         final Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         intent.putExtra(MediaStore.EXTRA_OUTPUT, outputFileUri);
 
-        startActivityForResult(intent, 0);
+        startActivityForResult(intent, 1);
     }
 
     //Step 4: Override methods for camera activity in different cases
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
-        Log.i(TAG, "resultCode: " + resultCode);
+        Log.i(TAG, "resultCode: " + requestCode);
 
-        if (resultCode == -1) {
+        if (requestCode == MY_DATA_CHECK_CODE) {
+            if (resultCode == TextToSpeech.Engine.CHECK_VOICE_DATA_PASS) {
+                myTTS = new TextToSpeech(this, this);
+                Log.i(TAG, "Came here");
+            }
+            else {
+                Intent installTTSIntent = new Intent();
+                installTTSIntent.setAction(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
+                startActivity(installTTSIntent);
+                Log.i(TAG, "Came");
+            }
+        }
+        else if (resultCode == -1) {
             onPhotoTaken();
         } else {
             Log.v(TAG, "User cancelled");
@@ -509,19 +464,8 @@ public class MainActivity extends Activity {
     private class OnSpeakListener implements View.OnClickListener {
 
         public void onClick(View v) {
-
-            try {
-                String ttsText = minusTextView.getText().toString();
-                synthesis.speak(ttsText);
-
-            } catch (BusyException e) {
-                Log.e(TAG, "SDK is busy");
-                e.printStackTrace();
-                Toast.makeText(_context, "ERROR: SDK is busy", Toast.LENGTH_LONG).show();
-            } catch (NoNetworkException e) {
-                Log.e(TAG, "Network is not available\n" + e.getStackTrace());
-                Toast.makeText(_context, "ERROR: Network is not available", Toast.LENGTH_LONG).show();
-            }
+            String ttsText = minusTextView.getText().toString();
+            speakText(ttsText);
         }
     }
 
@@ -529,16 +473,20 @@ public class MainActivity extends Activity {
     public class OnStopListener implements View.OnClickListener {
 
         public void onClick(View v) {
-            if (synthesis != null) {
-                synthesis.stop();
+            if (myTTS != null) {
+                myTTS.stop();
             }
         }
+    }
+
+    private void speakText(String speech) {
+        myTTS.speak(speech, TextToSpeech.QUEUE_FLUSH, null);
     }
 
     //To stop speaking when activity is paused
     @Override
     protected void onPause() {
-        synthesis.stop();
+        myTTS.stop();
         super.onPause();
     }
 
