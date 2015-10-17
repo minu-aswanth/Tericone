@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.Math;
-import java.util.Random;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -31,8 +30,6 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.graphics.Color;
-import android.graphics.PixelFormat;
-
 
 import com.googlecode.tesseract.android.TessBaseAPI;
 
@@ -345,22 +342,27 @@ public class MainActivity extends Activity {
         recognizedText = recognizedText.trim();
 
         //checking whether all words are valid
-        Log.i(TAG, "Dictionary starts here");
-        String[] words = recognizedText.split(" ");
-        for(int a = 0; a < words.length; a++){
-            if(check_for_word(words[a]) == false){
-                words[a] = "";
-            }
-        }
-        String properString = "";
-        for(int a = 0; a < words.length; a++){
-            properString = properString + words[a];
-        }
-        Log.i(TAG, "Dictionary ends here");
+//        Log.i(TAG, "Dictionary starts here");
+//        Log.i(TAG, "Initial words are" + recognizedText);
+//        String[] words = recognizedText.split(" ");
+//        Log.i(TAG, "All the words are" + words);
+//        for(int a = 0; a < words.length; a++){
+//            if(check_for_word(words[a]) == false){
+//                Log.i(TAG, "All the words are" + words[a]);
+//                words[a] = "";
+//            }
+//        }
+//        String properString = "";
+//        for(int a = 0; a < words.length; a++){
+//            properString = properString + words[a];
+//            Log.i(TAG, "Joining words are" + words[a]);
+//        }
+//        Log.i(TAG, "Final word is" + properString);
+//        Log.i(TAG, "Dictionary ends here");
 
         //Setting the EditText field with the OCRed text
         if ( recognizedText.length() != 0 ) {
-            minusTextView.setText(properString);
+            minusTextView.setText(recognizedText);
         }
 
     }
