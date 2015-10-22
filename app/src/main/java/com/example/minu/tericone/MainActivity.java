@@ -10,11 +10,13 @@ import java.io.OutputStream;
 import java.lang.Math;
 import java.util.Locale;
 
+import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -25,10 +27,14 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.graphics.Color;
@@ -37,7 +43,7 @@ import android.speech.tts.TextToSpeech.OnInitListener;
 
 import com.googlecode.tesseract.android.TessBaseAPI;
 
-public class MainActivity extends Activity implements OnInitListener{
+public class MainActivity extends ActionBarActivity implements OnInitListener{
     public static final String PACKAGE_NAME = "com.example.minu.tericone";
     public static final String DATA_PATH = Environment
             .getExternalStorageDirectory().toString() + "/Tericone/";
@@ -50,8 +56,10 @@ public class MainActivity extends Activity implements OnInitListener{
     protected Button speakButton;
     protected Button stopButton;
     protected EditText minusTextView;
+    protected RelativeLayout minusLayout;
     protected String _path;
     protected boolean _taken;
+    public String recognizedText = "Please take a photo first";
 
     protected static final String PHOTO_TAKEN = "photo_taken";
 
@@ -61,11 +69,6 @@ public class MainActivity extends Activity implements OnInitListener{
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-
-        //Checking if user has required tts data
-        Intent checkTTSIntent = new Intent();
-        checkTTSIntent.setAction(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
-        startActivityForResult(checkTTSIntent, MY_DATA_CHECK_CODE);
 
         //Creating directory
         String[] paths = new String[] { DATA_PATH, DATA_PATH + "tessdata/" };
@@ -111,23 +114,84 @@ public class MainActivity extends Activity implements OnInitListener{
 
         setContentView(R.layout.activity_main);
 
+        myTTS = new TextToSpeech(this, this);
+
         minusTextView = (EditText) findViewById(R.id.minusTextView);
-        ocrButton = (Button) findViewById(R.id.ocrButton);
-        ocrButton.setOnClickListener(new OcrButtonClickListener());
-
-        speakButton = (Button) findViewById(R.id.speakButton);
-        speakButton.setOnClickListener(new OnSpeakListener());
-
-        stopButton = (Button) findViewById(R.id.stopButton);
-        stopButton.setOnClickListener(new OnStopListener());
+        minusLayout = (RelativeLayout) findViewById(R.id.minusLayout);
+        minusLayout.setOnClickListener(new OcrButtonClickListener());
+        minusLayout.setOnLongClickListener(new OcrButtonLongClickListener());
 
         _path = DATA_PATH + "/ocr.jpg";
 
     }
 
-    //setup TTS
-    public void onInit(int initStatus) {
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        SharedPreferences sharedPref = getSharedPreferences("TericoneModeAndDictionary", Context.MODE_PRIVATE);
+        String mode = sharedPref.getString("mode", "none");
+        boolean dictionary = sharedPref.getBoolean("dictionary", false);
+        //For the first time
+        if(mode.equals("none")){
+            SharedPreferences.Editor editor = sharedPref.edit();
+            editor.putString("mode", "Accuracy");
+            editor.apply();
+            mode = sharedPref.getString("mode", "none");
+        }
+        if(menu.findItem(R.id.accuracyRadio).getTitle().toString().equals(mode)){
+            menu.findItem(R.id.accuracyRadio).setChecked(true);
+        }
+        else if(menu.findItem(R.id.swiftRadio).getTitle().toString().equals(mode)){
+            menu.findItem(R.id.swiftRadio).setChecked(true);
+        }
+        menu.findItem(R.id.dictionaryRadio).setChecked(dictionary);
+        return true;
+    }
 
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+        SharedPreferences sharedPref = getSharedPreferences("TericoneModeAndDictionary", Context.MODE_PRIVATE);
+
+        SharedPreferences.Editor editor = sharedPref.edit();
+        if (id == R.id.accuracyRadio || id == R.id.swiftRadio) {
+            editor.putString("mode", item.getTitle().toString());
+        }
+        else{
+            editor.putBoolean("dictionary", !item.isChecked());
+        }
+        editor.apply();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.accuracyRadio) {
+            item.setChecked(true);
+            return true;
+        }
+
+        if (id == R.id.swiftRadio) {
+            item.setChecked(true);
+            return true;
+        }
+
+        if (id == R.id.dictionaryRadio) {
+            if(item.isChecked()) {
+                item.setChecked(false);
+            }
+            else{
+                item.setChecked(true);
+            }
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+    //Step 1: Preparation of TTS engine
+    public void onInit(int initStatus) {
         //check for successful instantiation
         if (initStatus == TextToSpeech.SUCCESS) {
             if(myTTS.isLanguageAvailable(Locale.US)==TextToSpeech.LANG_AVAILABLE)
@@ -138,13 +202,19 @@ public class MainActivity extends Activity implements OnInitListener{
         }
     }
 
-    //Step 1: Preparation of TTS engine
-
     //Step 2: OCR button click
     public class OcrButtonClickListener implements View.OnClickListener {
         public void onClick(View view) {
             Log.v(TAG, "Starting Camera app");
             startCameraActivity();
+        }
+    }
+
+    public class OcrButtonLongClickListener implements View.OnLongClickListener {
+        public boolean onLongClick(View view) {
+            Log.v(TAG, "Starting Long Click app");
+            speakTheText(recognizedText);
+            return true;
         }
     }
 
@@ -165,19 +235,19 @@ public class MainActivity extends Activity implements OnInitListener{
 
         Log.i(TAG, "resultCode: " + requestCode);
 
-        if (requestCode == MY_DATA_CHECK_CODE) {
-            if (resultCode == TextToSpeech.Engine.CHECK_VOICE_DATA_PASS) {
-                myTTS = new TextToSpeech(this, this);
-                Log.i(TAG, "Came here");
-            }
-            else {
-                Intent installTTSIntent = new Intent();
-                installTTSIntent.setAction(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
-                startActivity(installTTSIntent);
-                Log.i(TAG, "Came");
-            }
-        }
-        else if (resultCode == -1) {
+//        if (requestCode == MY_DATA_CHECK_CODE) {
+//            if (resultCode == TextToSpeech.Engine.CHECK_VOICE_DATA_PASS) {
+//                myTTS = new TextToSpeech(this, this);
+//                Log.i(TAG, "Came here");
+//            }
+//            else {
+//                Intent installTTSIntent = new Intent();
+//                installTTSIntent.setAction(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
+//                startActivity(installTTSIntent);
+//                Log.i(TAG, "Came");
+//            }
+//        }
+        if (resultCode == -1) {
             onPhotoTaken();
         } else {
             Log.v(TAG, "User cancelled");
@@ -206,14 +276,21 @@ public class MainActivity extends Activity implements OnInitListener{
 
         Bitmap bitmap = BitmapFactory.decodeFile(_path, options);
 
+        SharedPreferences sharedPref = getSharedPreferences("TericoneModeAndDictionary", Context.MODE_PRIVATE);
+        String mode = sharedPref.getString("mode", "none");
+        boolean dictionary = sharedPref.getBoolean("dictionary", false);
+
         //resizing the image
-        //bitmap = Resize(bitmap, 300, 300);
+        //bitmap = Resize(bitmap, ?, ?);
 
-        //making the image grayscale
-        bitmap = SetGrayscale(bitmap);
+        Log.i(TAG, "Mode: "+ mode);
+        if(mode.equals("Accuracy")) {
+            //making the image grayscale
+            bitmap = SetGrayscale(bitmap);
 
-        //removing noise from image
-        bitmap = RemoveNoise(bitmap);
+            //removing noise from image
+            bitmap = RemoveNoise(bitmap);
+        }
 
         try {
             ExifInterface exif = new ExifInterface(_path);
@@ -284,7 +361,7 @@ public class MainActivity extends Activity implements OnInitListener{
         baseApi.setImage(bitmap);
 
         //This variable will contain the text after processing
-        String recognizedText = baseApi.getUTF8Text();
+        recognizedText = baseApi.getUTF8Text();
 
         baseApi.end();
 
@@ -319,6 +396,7 @@ public class MainActivity extends Activity implements OnInitListener{
         if ( recognizedText.length() != 0 ) {
             minusTextView.setText(recognizedText);
         }
+        speakTheText(recognizedText);
 
     }
 
@@ -461,6 +539,9 @@ public class MainActivity extends Activity implements OnInitListener{
     }
 
     //Step 6: Speak button click
+    public void speakTheText(String ttsText){
+        speakText(ttsText);
+    }
     private class OnSpeakListener implements View.OnClickListener {
 
         public void onClick(View v) {

@@ -1,6 +1,15 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools" tools:context=".MainActivity">
-    <item android:id="@+id/action_settings" android:title="@string/action_settings"
-        android:orderInCategory="100" app:showAsAction="never" />
+    <item android:title="Mode" android:orderInCategory="1">
+        <menu >
+            <group android:checkableBehavior="single">
+                <item android:id="@+id/accuracyRadio" android:title="Accuracy"/>
+                <item android:id="@+id/swiftRadio" android:title="Swift" />
+            </group>
+        </menu>
+    </item>
+    <group android:checkableBehavior="all" android:orderInCategory="2">
+        <item android:id="@+id/dictionaryRadio" android:title="Dictionary Mode"/>
+    </group>
 </menu>
