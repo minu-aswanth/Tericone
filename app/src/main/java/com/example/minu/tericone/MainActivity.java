@@ -10,18 +10,13 @@ import java.io.OutputStream;
 import java.lang.Math;
 import java.util.Locale;
 
-import android.app.ActionBar;
-import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
-import android.media.AudioManager;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Bundle;
@@ -32,7 +27,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -52,9 +46,6 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
 
     private static final String TAG = "tericone";
 
-    protected Button ocrButton;
-    protected Button speakButton;
-    protected Button stopButton;
     protected EditText minusTextView;
     protected RelativeLayout minusLayout;
     protected String _path;
@@ -63,8 +54,6 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
 
     protected static final String PHOTO_TAKEN = "photo_taken";
 
-    Context _context;
-    private int MY_DATA_CHECK_CODE = 0;
     private TextToSpeech myTTS;
 
     @Override
@@ -368,29 +357,33 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
         Log.v(TAG, "OCRED TEXT: " + recognizedText);
 
         if ( lang.equalsIgnoreCase("eng") ) {
-            recognizedText = recognizedText.replaceAll("[^a-zA-Z0-9]+", " ");
+            recognizedText = recognizedText.replaceAll("[^a-zA-Z0-9.,']+", " ");
         }
 
         recognizedText = recognizedText.trim();
 
         //checking whether all words are valid
-//        Log.i(TAG, "Dictionary starts here");
-//        Log.i(TAG, "Initial words are" + recognizedText);
-//        String[] words = recognizedText.split(" ");
-//        Log.i(TAG, "All the words are" + words);
-//        for(int a = 0; a < words.length; a++){
-//            if(check_for_word(words[a]) == false){
-//                Log.i(TAG, "All the words are" + words[a]);
-//                words[a] = "";
-//            }
-//        }
-//        String properString = "";
-//        for(int a = 0; a < words.length; a++){
-//            properString = properString + words[a];
-//            Log.i(TAG, "Joining words are" + words[a]);
-//        }
-//        Log.i(TAG, "Final word is" + properString);
-//        Log.i(TAG, "Dictionary ends here");
+        if(dictionary == true) {
+            Log.i(TAG, "Dictionary starts here");
+            Log.i(TAG, "Initial words are" + recognizedText);
+            String[] words = recognizedText.split(" ");
+            Log.i(TAG, "All the words are" + words);
+            for (int a = 0; a < words.length; a++) {
+                if (check_for_word(words[a]) == false) {
+                    Log.i(TAG, "Came here");
+                    words[a] = "";
+                }
+            }
+            String properString = "";
+            for (int a = 0; a < words.length; a++) {
+                if (words[a] != "") {
+                    properString = properString + words[a] + " ";
+                }
+            }
+            recognizedText = properString.trim();
+            Log.i(TAG, "The resulting sentence is " + properString);
+            Log.i(TAG, "Dictionary ends here");
+        }
 
         //Setting the EditText field with the OCRed text
         if ( recognizedText.length() != 0 ) {
@@ -401,20 +394,38 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
     }
 
     //Checking whether word is in dictionary
-    public static boolean check_for_word(String word) {
+    public static boolean check_for_word(String oldWord) {
+        String word = oldWord.replaceAll("[^a-zA-Z']+", "");
+        Log.i(TAG, "The word is " + word);
+        File sdcard = Environment.getExternalStorageDirectory();
+
+        //Get the text file
+        File file = new File(sdcard,"americanenglish.txt");
+
+        //Read text from file
+        StringBuilder text = new StringBuilder();
+
         try {
-            BufferedReader in = new BufferedReader(new FileReader(
-                    "/usr/share/dict/american-english"));
-            String str;
-            while ((str = in.readLine()) != null) {
-                if (str.indexOf(word) != -1) {
+            BufferedReader br = new BufferedReader(new FileReader(file));
+            String line;
+
+            while ((line = br.readLine()) != null) {
+                text.append(line);
+                text.append('\n');
+            }
+            while (text != null) {
+                if (text.indexOf(word) != -1) {
                     return true;
                 }
+                else{
+                    return false;
+                }
             }
-            in.close();
-        } catch (IOException e) {
+            br.close();
         }
-
+        catch (IOException e) {
+            e.printStackTrace();
+        }
         return false;
     }
 
@@ -541,23 +552,6 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
     //Step 6: Speak button click
     public void speakTheText(String ttsText){
         speakText(ttsText);
-    }
-    private class OnSpeakListener implements View.OnClickListener {
-
-        public void onClick(View v) {
-            String ttsText = minusTextView.getText().toString();
-            speakText(ttsText);
-        }
-    }
-
-    //Step 7: Stop button click
-    public class OnStopListener implements View.OnClickListener {
-
-        public void onClick(View v) {
-            if (myTTS != null) {
-                myTTS.stop();
-            }
-        }
     }
 
     private void speakText(String speech) {
