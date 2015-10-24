@@ -7,7 +7,8 @@
         <item name="colorPrimaryDark">@color/app_color</item>
     </style>
 
-    <color name="app_color">#336699</color>
+    <color name="app_color">#232B2B</color>
     <color name="white">#ffffff</color>
+    <color name="main_screen">#DC3D24</color>
 
 </resources>

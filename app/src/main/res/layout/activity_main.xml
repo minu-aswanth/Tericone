@@ -4,20 +4,12 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:orientation="vertical"
+    android:background="@color/main_screen"
     tools:context=".MainActivity"
     android:id="@+id/minusLayout">
 
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/ocrButton"
-        android:text="@string/ocrButtonText"
-        android:layout_above="@+id/minusTextView"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="102dp" />
-
-    <TextView
+    <EditText
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
@@ -26,26 +18,12 @@
         android:layout_centerVertical="true"
         android:layout_centerHorizontal="true" />
 
-    <Button
+    <ProgressBar
+        style="?android:attr/progressBarStyleLarge"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Speak"
-        android:id="@+id/speakButton"
-        android:layout_below="@+id/minusTextView"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:layout_marginLeft="31dp"
-        android:layout_marginStart="31dp"
-        android:layout_marginTop="78dp" />
+        android:id="@+id/minusProgressBar"
+        android:layout_alignBottom="@+id/minusTextView"
+        android:layout_centerHorizontal="true" />
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Stop"
-        android:id="@+id/stopButton"
-        android:layout_alignBottom="@+id/speakButton"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true"
-        android:layout_marginRight="28dp"
-        android:layout_marginEnd="28dp" />
 </RelativeLayout>

@@ -1,6 +1,27 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools" tools:context=".MainActivity">
-    <item android:id="@+id/action_settings" android:title="@string/action_settings"
-        android:orderInCategory="100" app:showAsAction="never" />
+    <item android:title="Mode" android:orderInCategory="1">
+        <menu>
+            <group android:checkableBehavior="single">
+                <item android:id="@+id/accuracyRadio" android:title="Accuracy"/>
+                <item android:id="@+id/swiftRadio" android:title="Swift" />
+            </group>
+        </menu>
+    </item>
+    <group android:checkableBehavior="all" android:orderInCategory="2">
+        <item android:id="@+id/dictionaryRadio" android:title="Dictionary Mode"/>
+    </group>
+    <item android:title="Speech Speed" android:orderInCategory="3">
+        <menu>
+            <group android:checkableBehavior="single">
+                <item android:id="@+id/firstSpeed" android:title="0.5"/>
+                <item android:id="@+id/secondSpeed" android:title="0.75"/>
+                <item android:id="@+id/thirdSpeed" android:title="1" />
+                <item android:id="@+id/fourthSpeed" android:title="1.5"/>
+                <item android:id="@+id/fifthSpeed" android:title="2" />
+                <item android:id="@+id/sixthSpeed" android:title="2.5" />
+            </group>
+        </menu>
+    </item>
 </menu>
