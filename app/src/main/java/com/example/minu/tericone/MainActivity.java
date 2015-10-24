@@ -21,6 +21,8 @@ import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
 import android.provider.MediaStore;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
@@ -28,6 +30,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -48,6 +51,7 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
 
     protected EditText minusTextView;
     protected RelativeLayout minusLayout;
+    protected ProgressBar minusProgressBar;
     protected String _path;
     protected boolean _taken;
     public String recognizedText = "Please take a photo first";
@@ -133,6 +137,8 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
         minusLayout = (RelativeLayout) findViewById(R.id.minusLayout);
         minusLayout.setOnClickListener(new OcrButtonClickListener());
         minusLayout.setOnLongClickListener(new OcrButtonLongClickListener());
+        minusProgressBar = (ProgressBar) findViewById(R.id.minusProgressBar);
+        minusProgressBar.setVisibility(View.INVISIBLE);
 
         _path = DATA_PATH + "/ocr.jpg";
 
@@ -145,7 +151,9 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
         SharedPreferences sharedPref = getSharedPreferences("TericoneModeAndDictionary", Context.MODE_PRIVATE);
         String mode = sharedPref.getString("mode", "none");
         boolean dictionary = sharedPref.getBoolean("dictionary", false);
+        String speed = sharedPref.getString("speed", "1");
         //For the first time
+
         if(mode.equals("none")){
             SharedPreferences.Editor editor = sharedPref.edit();
             editor.putString("mode", "Accuracy");
@@ -155,10 +163,28 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
         if(menu.findItem(R.id.accuracyRadio).getTitle().toString().equals(mode)){
             menu.findItem(R.id.accuracyRadio).setChecked(true);
         }
-        else if(menu.findItem(R.id.swiftRadio).getTitle().toString().equals(mode)){
+        if(menu.findItem(R.id.swiftRadio).getTitle().toString().equals(mode)){
             menu.findItem(R.id.swiftRadio).setChecked(true);
         }
         menu.findItem(R.id.dictionaryRadio).setChecked(dictionary);
+        if(menu.findItem(R.id.firstSpeed).getTitle().toString().equals(speed)){
+            menu.findItem(R.id.firstSpeed).setChecked(true);
+        }
+        if(menu.findItem(R.id.secondSpeed).getTitle().toString().equals(speed)){
+            menu.findItem(R.id.secondSpeed).setChecked(true);
+        }
+        if(menu.findItem(R.id.thirdSpeed).getTitle().toString().equals(speed)){
+            menu.findItem(R.id.thirdSpeed).setChecked(true);
+        }
+        if(menu.findItem(R.id.fourthSpeed).getTitle().toString().equals(speed)){
+            menu.findItem(R.id.fourthSpeed).setChecked(true);
+        }
+        if(menu.findItem(R.id.fifthSpeed).getTitle().toString().equals(speed)){
+            menu.findItem(R.id.fifthSpeed).setChecked(true);
+        }
+        if(menu.findItem(R.id.sixthSpeed).getTitle().toString().equals(speed)){
+            menu.findItem(R.id.sixthSpeed).setChecked(true);
+        }
         return true;
     }
 
@@ -177,7 +203,6 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
         if (id == R.id.dictionaryRadio){
             editor.putBoolean("dictionary", !item.isChecked());
         }
-        editor.apply();
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.accuracyRadio) {
@@ -200,6 +225,44 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
             return true;
         }
 
+        if(id == R.id.firstSpeed){
+            myTTS.setSpeechRate(0.5f);
+            item.setChecked(true);
+            editor.putString("speed", "0.5");
+            return true;
+        }
+        if(id == R.id.secondSpeed){
+            myTTS.setSpeechRate(0.75f);
+            item.setChecked(true);
+            editor.putString("speed", "0.75");
+            return true;
+        }
+        if(id == R.id.thirdSpeed){
+            myTTS.setSpeechRate(1);
+            item.setChecked(true);
+            editor.putString("speed", "1");
+            return true;
+        }
+        if(id == R.id.fourthSpeed){
+            myTTS.setSpeechRate(1.5f);
+            item.setChecked(true);
+            editor.putString("speed", "1.5");
+            return true;
+        }
+        if(id == R.id.fifthSpeed) {
+            myTTS.setSpeechRate(2);
+            item.setChecked(true);
+            editor.putString("speed", "2");
+            return true;
+        }
+        if(id == R.id.sixthSpeed) {
+            myTTS.setSpeechRate(2.5f);
+            item.setChecked(true);
+            editor.putString("speed", "2.5");
+            return true;
+        }
+        editor.apply();
+
         return super.onOptionsItemSelected(item);
     }
 
@@ -207,8 +270,9 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
     public void onInit(int initStatus) {
         //check for successful instantiation
         if (initStatus == TextToSpeech.SUCCESS) {
-            if(myTTS.isLanguageAvailable(Locale.US)==TextToSpeech.LANG_AVAILABLE)
+            if(myTTS.isLanguageAvailable(Locale.US)==TextToSpeech.LANG_AVAILABLE) {
                 myTTS.setLanguage(Locale.US);
+            }
         }
         else if (initStatus == TextToSpeech.ERROR) {
             Toast.makeText(this, "Sorry! Text To Speech failed...", Toast.LENGTH_LONG).show();
@@ -219,6 +283,7 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
     public class OcrButtonClickListener implements View.OnClickListener {
         public void onClick(View view) {
             Log.v(TAG, "Starting Camera app");
+            speakText("Starting Camera");
             startCameraActivity();
         }
     }
@@ -248,18 +313,6 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
 
         Log.i(TAG, "resultCode: " + requestCode);
 
-//        if (requestCode == MY_DATA_CHECK_CODE) {
-//            if (resultCode == TextToSpeech.Engine.CHECK_VOICE_DATA_PASS) {
-//                myTTS = new TextToSpeech(this, this);
-//                Log.i(TAG, "Came here");
-//            }
-//            else {
-//                Intent installTTSIntent = new Intent();
-//                installTTSIntent.setAction(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
-//                startActivity(installTTSIntent);
-//                Log.i(TAG, "Came");
-//            }
-//        }
         if (resultCode == -1) {
             onPhotoTaken();
         } else {
@@ -282,139 +335,157 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
 
     //Step 5: Doing stuff with the taken picture, getting the text and setting the EditText field
     protected void onPhotoTaken() {
-        _taken = true;
 
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inSampleSize = 4;
+        minusProgressBar.setVisibility(View.VISIBLE);
 
-        Bitmap bitmap = BitmapFactory.decodeFile(_path, options);
-
-        SharedPreferences sharedPref = getSharedPreferences("TericoneModeAndDictionary", Context.MODE_PRIVATE);
-        String mode = sharedPref.getString("mode", "none");
-        boolean dictionary = sharedPref.getBoolean("dictionary", false);
-
-        //resizing the image
-        //bitmap = Resize(bitmap, ?, ?);
-
-        Log.i(TAG, "Mode: "+ mode);
-        if(mode.equals("Accuracy")) {
-            //making the image grayscale
-            bitmap = SetGrayscale(bitmap);
-
-            //removing noise from image
-            bitmap = RemoveNoise(bitmap);
-        }
-
-        try {
-            ExifInterface exif = new ExifInterface(_path);
-            int exifOrientation = exif.getAttributeInt(
-                    ExifInterface.TAG_ORIENTATION,
-                    ExifInterface.ORIENTATION_NORMAL);
-
-            Log.v(TAG, "Orient: " + exifOrientation);
-
-            int rotate = 0;
-
-            switch (exifOrientation) {
-                case ExifInterface.ORIENTATION_ROTATE_90:
-                    rotate = 90;
-                    break;
-                case ExifInterface.ORIENTATION_ROTATE_180:
-                    rotate = 180;
-                    break;
-                case ExifInterface.ORIENTATION_ROTATE_270:
-                    rotate = 270;
-                    break;
-            }
-
-            Log.v(TAG, "Rotation: " + rotate);
-
-            if (rotate != 0) {
-
-                // Getting width & height of the given image.
-                int w = bitmap.getWidth();
-                int h = bitmap.getHeight();
-
-                // Setting pre rotate
-                Matrix mtx = new Matrix();
-                mtx.preRotate(rotate);
-
-                // Rotating Bitmap
-                bitmap = Bitmap.createBitmap(bitmap, 0, 0, w, h, mtx, false);
-            }
-
-            // Convert to ARGB_8888, required by tess
-            bitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true);
-
-        } catch (IOException e) {
-            Log.e(TAG, "Couldn't correct orientation: " + e.toString());
-        }
-
-        //saving processed image
-        String root = Environment.getExternalStorageDirectory().toString();
-        File myDir = new File(root + "/Tericone");
-        String fname = "Image.jpg";
-        File file = new File (myDir, fname);
-        if (file.exists ()) file.delete ();
-        try {
-            FileOutputStream out = new FileOutputStream(file);
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
-            out.flush();
-            out.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        Log.v(TAG, "Before baseApi");
-
-        //Creating TessBaseAPI object
-        TessBaseAPI baseApi = new TessBaseAPI();
-        baseApi.setDebug(true);
-        baseApi.init(DATA_PATH, lang);
-        baseApi.setImage(bitmap);
-
-        //This variable will contain the text after processing
-        recognizedText = baseApi.getUTF8Text();
-
-        baseApi.end();
-
-        Log.v(TAG, "OCRED TEXT: " + recognizedText);
-
-        if ( lang.equalsIgnoreCase("eng") ) {
-            recognizedText = recognizedText.replaceAll("[^a-zA-Z0-9.,']+", " ");
-        }
-
-        recognizedText = recognizedText.trim();
-        Log.i(TAG, "Dictionary :" + dictionary);
-
-        //checking whether all words are valid
-        if(dictionary == true) {
-            Log.i(TAG, "Dictionary starts here");
-            Log.i(TAG, "Initial words are" + recognizedText);
-            String[] words = recognizedText.split(" ");
-            Log.i(TAG, "All the words are" + words);
-            for (int a = 0; a < words.length; a++) {
-                if (check_for_word(words[a]) == false) {
-                    Log.i(TAG, "Came here");
-                    words[a] = "";
+        final Handler handler = new Handler(){
+            @Override
+            public void handleMessage(Message msg) {
+                minusProgressBar.setVisibility(View.INVISIBLE);
+                //Setting the EditText field with the OCRed text
+                if ( recognizedText.length() != 0 ) {
+                    minusTextView.setText(recognizedText);
                 }
+                speakTheText(recognizedText);
             }
-            String properString = "";
-            for (int a = 0; a < words.length; a++) {
-                if (words[a] != "") {
-                    properString = properString + words[a] + " ";
-                }
-            }
-            recognizedText = properString.trim();
-            Log.i(TAG, "The resulting sentence is " + properString);
-            Log.i(TAG, "Dictionary ends here");
-        }
+        };
 
-        //Setting the EditText field with the OCRed text
-        if ( recognizedText.length() != 0 ) {
-            minusTextView.setText(recognizedText);
-        }
-        speakTheText(recognizedText);
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                _taken = true;
+
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inSampleSize = 4;
+
+                Bitmap bitmap = BitmapFactory.decodeFile(_path, options);
+
+                SharedPreferences sharedPref = getSharedPreferences("TericoneModeAndDictionary", Context.MODE_PRIVATE);
+                String mode = sharedPref.getString("mode", "none");
+                boolean dictionary = sharedPref.getBoolean("dictionary", false);
+
+                Log.i(TAG, "Mode: "+ mode);
+                if(mode.equals("Accuracy")) {
+                    //resizing the image
+                    //bitmap = Resize(bitmap, 5340);
+
+                    //making the image grayscale
+                    bitmap = SetGrayscale(bitmap);
+
+                    //removing noise from image
+                    bitmap = RemoveNoise(bitmap);
+                }
+
+                try {
+                    ExifInterface exif = new ExifInterface(_path);
+                    int exifOrientation = exif.getAttributeInt(
+                            ExifInterface.TAG_ORIENTATION,
+                            ExifInterface.ORIENTATION_NORMAL);
+
+                    Log.v(TAG, "Orient: " + exifOrientation);
+
+                    int rotate = 0;
+
+                    switch (exifOrientation) {
+                        case ExifInterface.ORIENTATION_ROTATE_90:
+                            rotate = 90;
+                            break;
+                        case ExifInterface.ORIENTATION_ROTATE_180:
+                            rotate = 180;
+                            break;
+                        case ExifInterface.ORIENTATION_ROTATE_270:
+                            rotate = 270;
+                            break;
+                    }
+
+                    Log.v(TAG, "Rotation: " + rotate);
+
+                    if (rotate != 0) {
+
+                        // Getting width & height of the given image.
+                        int w = bitmap.getWidth();
+                        int h = bitmap.getHeight();
+
+                        // Setting pre rotate
+                        Matrix mtx = new Matrix();
+                        mtx.preRotate(rotate);
+
+                        // Rotating Bitmap
+                        bitmap = Bitmap.createBitmap(bitmap, 0, 0, w, h, mtx, false);
+                    }
+
+                    // Convert to ARGB_8888, required by tess
+                    bitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true);
+
+                } catch (IOException e) {
+                    Log.e(TAG, "Couldn't correct orientation: " + e.toString());
+                }
+
+                //saving processed image
+                String root = Environment.getExternalStorageDirectory().toString();
+                File myDir = new File(root + "/Tericone");
+                String fname = "Image.jpg";
+                File file = new File (myDir, fname);
+                if (file.exists ()) file.delete ();
+                try {
+                    FileOutputStream out = new FileOutputStream(file);
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
+                    out.flush();
+                    out.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                Log.v(TAG, "Before baseApi");
+
+                //Creating TessBaseAPI object
+                TessBaseAPI baseApi = new TessBaseAPI();
+                baseApi.setDebug(true);
+                baseApi.init(DATA_PATH, lang);
+                baseApi.setImage(bitmap);
+
+                //This variable will contain the text after processing
+                recognizedText = baseApi.getUTF8Text();
+
+                baseApi.end();
+
+                Log.v(TAG, "OCRED TEXT: " + recognizedText);
+
+                if ( lang.equalsIgnoreCase("eng") ) {
+                    recognizedText = recognizedText.replaceAll("[^a-zA-Z0-9.,']+", " ");
+                }
+
+                recognizedText = recognizedText.trim();
+                Log.i(TAG, "Dictionary :" + dictionary);
+
+                //checking whether all words are valid
+                if(dictionary == true) {
+                    Log.i(TAG, "Dictionary starts here");
+                    Log.i(TAG, "Initial words are" + recognizedText);
+                    String[] words = recognizedText.split(" ");
+                    Log.i(TAG, "All the words are" + words);
+                    for (int a = 0; a < words.length; a++) {
+                        if (check_for_word(words[a]) == false) {
+                            Log.i(TAG, "Came here");
+                            words[a] = "";
+                        }
+                    }
+                    String properString = "";
+                    for (int a = 0; a < words.length; a++) {
+                        if (words[a] != "") {
+                            properString = properString + words[a] + " ";
+                        }
+                    }
+                    recognizedText = properString.trim();
+                    Log.i(TAG, "The resulting sentence is " + properString);
+                    Log.i(TAG, "Dictionary ends here");
+                }
+
+                handler.sendEmptyMessage(0);
+            }
+        };
+        Thread minusThread = new Thread(r);
+        minusThread.start();
 
     }
 
@@ -458,68 +529,25 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
 
     //Functions for improving the image quality
     //1)Resize
-    public Bitmap Resize(Bitmap bmp, int newWidth, int newHeight)
+    public Bitmap Resize(Bitmap bmp, int maxDimension)
     {
 
         Bitmap temp = (Bitmap)bmp;
+        int newWidth, newHeight;
+
+        if(temp.getWidth() > temp.getHeight()) {
+            double scaleFactor = (double)temp.getHeight() / temp.getWidth();
+            newWidth = maxDimension;
+            newHeight = (int) (newWidth * scaleFactor);
+            Log.i(TAG, "Width: "+ newWidth + " Height: "+ newHeight + " Scale Factor: "+ scaleFactor + " Initial Height: "+ temp.getHeight());
+        } else {
+            double scaleFactor = (double)temp.getWidth() / temp.getHeight();
+            newHeight = maxDimension;
+            newWidth = (int) (newHeight * scaleFactor);
+            Log.i(TAG, "Width: "+ newWidth + " Height: "+ newHeight + " Scale Factor: "+ scaleFactor + " Initial Width: "+ temp.getWidth());
+        }
 
         Bitmap bmap = Bitmap.createScaledBitmap(temp, newWidth, newHeight, true);
-
-        double nWidthFactor = (double)temp.getWidth() / (double)newWidth;
-        double nHeightFactor = (double)temp.getHeight() / (double)newHeight;
-
-        double fx, fy, nx, ny;
-        int cx, cy, fr_x, fr_y;
-        int color1,color2,color3,color4;
-        byte nRed, nGreen, nBlue;
-
-        byte bp1, bp2;
-
-        for (int x = 0; x < bmap.getWidth(); ++x)
-        {
-            for (int y = 0; y < bmap.getHeight(); ++y)
-            {
-
-                fr_x = (int)Math.floor(x * nWidthFactor);
-                fr_y = (int)Math.floor(y * nHeightFactor);
-                cx = fr_x + 1;
-                if (cx >= temp.getWidth()) cx = fr_x;
-                cy = fr_y + 1;
-                if (cy >= temp.getHeight()) cy = fr_y;
-                fx = x * nWidthFactor - fr_x;
-                fy = y * nHeightFactor - fr_y;
-                nx = 1.0 - fx;
-                ny = 1.0 - fy;
-
-                color1 = temp.getPixel(fr_x, fr_y);
-                color2 = temp.getPixel(cx, fr_y);
-                color3 = temp.getPixel(fr_x, cy);
-                color4 = temp.getPixel(cx, cy);
-
-                // Blue
-                bp1 = (byte)(nx * Color.blue(color1) + fx * Color.blue(color2));
-
-                bp2 = (byte)(nx * Color.blue(color3) + fx * Color.blue(color4));
-
-                nBlue = (byte)(ny * (double)(bp1) + fy * (double)(bp2));
-
-                // Green
-                bp1 = (byte)(nx * Color.green(color1) + fx * Color.green(color2));
-
-                bp2 = (byte)(nx * Color.green(color3) + fx * Color.green(color4));
-
-                nGreen = (byte)(ny * (double)(bp1) + fy * (double)(bp2));
-
-                // Red
-                bp1 = (byte)(nx * Color.red(color1) + fx * Color.red(color2));
-
-                bp2 = (byte)(nx * Color.red(color3) + fx * Color.red(color4));
-
-                nRed = (byte)(ny * (double)(bp1) + fy * (double)(bp2));
-
-                bmap.setPixel(x, y, Color.argb(255, nRed, nGreen, nBlue));
-            }
-        }
 
         return bmap;
 
