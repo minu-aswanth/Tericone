@@ -99,6 +99,30 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
             }
         }
 
+        //copying dictionary file to the folder
+        if (!(new File(DATA_PATH + "americanenglish.txt")).exists()) {
+            try {
+
+                AssetManager assetManager = getAssets();
+                InputStream in = assetManager.open("americanenglish.txt");
+                OutputStream out = new FileOutputStream(DATA_PATH
+                        + "americanenglish.txt");
+
+                // Transfer bytes from in to out
+                byte[] buf = new byte[1024];
+                int len;
+                while ((len = in.read(buf)) > 0) {
+                    out.write(buf, 0, len);
+                }
+                in.close();
+                out.close();
+
+                Log.v(TAG, "Copied dictionary");
+            } catch (IOException e) {
+                Log.e(TAG, "Was unable to copy dictionary" + e.toString());
+            }
+        }
+
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
@@ -150,7 +174,7 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
         if (id == R.id.accuracyRadio || id == R.id.swiftRadio) {
             editor.putString("mode", item.getTitle().toString());
         }
-        else{
+        if (id == R.id.dictionaryRadio){
             editor.putBoolean("dictionary", !item.isChecked());
         }
         editor.apply();
@@ -361,6 +385,7 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
         }
 
         recognizedText = recognizedText.trim();
+        Log.i(TAG, "Dictionary :" + dictionary);
 
         //checking whether all words are valid
         if(dictionary == true) {
@@ -398,9 +423,10 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
         String word = oldWord.replaceAll("[^a-zA-Z']+", "");
         Log.i(TAG, "The word is " + word);
         File sdcard = Environment.getExternalStorageDirectory();
+        Log.i(TAG, "Sdcard is "+ sdcard);
 
         //Get the text file
-        File file = new File(sdcard,"americanenglish.txt");
+        File file = new File(sdcard + "/Tericone/","americanenglish.txt");
 
         //Read text from file
         StringBuilder text = new StringBuilder();
@@ -413,6 +439,7 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
                 text.append(line);
                 text.append('\n');
             }
+            Log.i(TAG, "Text is "+ text);
             while (text != null) {
                 if (text.indexOf(word) != -1) {
                     return true;
