@@ -7,7 +7,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.Math;
 import java.util.Locale;
 
 import android.content.Context;
@@ -29,7 +28,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -49,7 +47,7 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
 
     private static final String TAG = "tericone";
 
-    protected EditText minusTextView;
+    protected TextView minusTextView;
     protected RelativeLayout minusLayout;
     protected ProgressBar minusProgressBar;
     protected String _path;
@@ -133,7 +131,7 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
 
         myTTS = new TextToSpeech(this, this);
 
-        minusTextView = (EditText) findViewById(R.id.minusTextView);
+        //minusTextView = (TextView) findViewById(R.id.minusTextView);
         minusLayout = (RelativeLayout) findViewById(R.id.minusLayout);
         minusLayout.setOnClickListener(new OcrButtonClickListener());
         minusLayout.setOnLongClickListener(new OcrButtonLongClickListener());
@@ -160,6 +158,7 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
             editor.apply();
             mode = sharedPref.getString("mode", "none");
         }
+        Log.i(TAG, "mode:"+ mode + " ,dictionary:" + dictionary + " ,speed:"+ speed);
         if(menu.findItem(R.id.accuracyRadio).getTitle().toString().equals(mode)){
             menu.findItem(R.id.accuracyRadio).setChecked(true);
         }
@@ -204,6 +203,11 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
             editor.putBoolean("dictionary", !item.isChecked());
         }
 
+        if(id == R.id.firstSpeed || id == R.id.secondSpeed || id == R.id.thirdSpeed || id == R.id.fourthSpeed || id == R.id.fifthSpeed || id == R.id.sixthSpeed){
+            editor.putString("speed", item.getTitle().toString());
+        }
+        editor.apply();
+
         //noinspection SimplifiableIfStatement
         if (id == R.id.accuracyRadio) {
             item.setChecked(true);
@@ -228,40 +232,33 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
         if(id == R.id.firstSpeed){
             myTTS.setSpeechRate(0.5f);
             item.setChecked(true);
-            editor.putString("speed", "0.5");
             return true;
         }
         if(id == R.id.secondSpeed){
             myTTS.setSpeechRate(0.75f);
             item.setChecked(true);
-            editor.putString("speed", "0.75");
             return true;
         }
         if(id == R.id.thirdSpeed){
             myTTS.setSpeechRate(1);
             item.setChecked(true);
-            editor.putString("speed", "1");
             return true;
         }
         if(id == R.id.fourthSpeed){
             myTTS.setSpeechRate(1.5f);
             item.setChecked(true);
-            editor.putString("speed", "1.5");
             return true;
         }
         if(id == R.id.fifthSpeed) {
             myTTS.setSpeechRate(2);
             item.setChecked(true);
-            editor.putString("speed", "2");
             return true;
         }
         if(id == R.id.sixthSpeed) {
             myTTS.setSpeechRate(2.5f);
             item.setChecked(true);
-            editor.putString("speed", "2.5");
             return true;
         }
-        editor.apply();
 
         return super.onOptionsItemSelected(item);
     }
@@ -283,11 +280,12 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
     public class OcrButtonClickListener implements View.OnClickListener {
         public void onClick(View view) {
             Log.v(TAG, "Starting Camera app");
-            speakText("Starting Camera");
+            speakTheText("Starting Camera");
             startCameraActivity();
         }
     }
 
+    //To repeat the earlier sentence
     public class OcrButtonLongClickListener implements View.OnLongClickListener {
         public boolean onLongClick(View view) {
             Log.v(TAG, "Starting Long Click app");
@@ -333,7 +331,7 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
         }
     }
 
-    //Step 5: Doing stuff with the taken picture, getting the text and setting the EditText field
+    //Step 5: Processing the taken picture, getting the text and storing
     protected void onPhotoTaken() {
 
         minusProgressBar.setVisibility(View.VISIBLE);
@@ -342,9 +340,9 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
             @Override
             public void handleMessage(Message msg) {
                 minusProgressBar.setVisibility(View.INVISIBLE);
-                //Setting the EditText field with the OCRed text
+                //Setting the TextView field with the OCRed text
                 if ( recognizedText.length() != 0 ) {
-                    minusTextView.setText(recognizedText);
+                    //minusTextView.setText(recognizedText);
                 }
                 speakTheText(recognizedText);
             }
@@ -367,7 +365,7 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
                 Log.i(TAG, "Mode: "+ mode);
                 if(mode.equals("Accuracy")) {
                     //resizing the image
-                    //bitmap = Resize(bitmap, 5340);
+                    //bitmap = Resize(bitmap, 3500);
 
                     //making the image grayscale
                     bitmap = SetGrayscale(bitmap);
@@ -606,11 +604,7 @@ public class MainActivity extends ActionBarActivity implements OnInitListener{
 
     //Step 6: Speak button click
     public void speakTheText(String ttsText){
-        speakText(ttsText);
-    }
-
-    private void speakText(String speech) {
-        myTTS.speak(speech, TextToSpeech.QUEUE_FLUSH, null);
+        myTTS.speak(ttsText, TextToSpeech.QUEUE_FLUSH, null);
     }
 
     //To stop speaking when activity is paused

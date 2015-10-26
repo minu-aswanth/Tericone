@@ -8,22 +8,12 @@
     tools:context=".MainActivity"
     android:id="@+id/minusLayout">
 
-
-    <EditText
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="OCRed text"
-        android:id="@+id/minusTextView"
-        android:layout_centerVertical="true"
-        android:layout_centerHorizontal="true" />
-
     <ProgressBar
         style="?android:attr/progressBarStyleLarge"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/minusProgressBar"
-        android:layout_alignBottom="@+id/minusTextView"
+        android:layout_centerVertical="true"
         android:layout_centerHorizontal="true" />
 
 </RelativeLayout>
